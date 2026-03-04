@@ -118,14 +118,166 @@ The best-case runtime for insertion is $\Omega(1)$ (e.g., empty tree). The worst
 In this section, we discuss translating our theoretical design into Python, adhering strictly to the requirements without using generative AI tools. We utilize a \texttt{NIL} sentinel node to simplify boundary conditions.
 
 % Insert a small key code snippet for demonstration
+\begin{lstlisting}[caption={Example of Initialization of BRT and Node}, label=lst:Initialization]
+class node:
+    def __init__(self, key, left = None, right = None, parent = None, color = RED):
+        self.key = key
+        self.p = parent
+        self.left = left
+        self.right = right
+        self.color = color 
+
+class RedBlackTree:
+    def __init__(self):
+        self.NIL = node(key = None, color = BLACK)
+        self.NIL.left = None
+        self.NIL.right = None
+        self.root = self.NIL
+\end{lstlisting}
+
 \begin{lstlisting}[caption={Example of Left Rotation in Python}, label=lst:left_rotate]
 def left_rotate(self, x):
+    # Initialization
     y = x.right
     x.right = y.left
+
+    # Connect y left child to x Connect y to x parent
     if y.left != self.NIL:
         y.left.p = x
     y.p = x.p
-    # ... handle parent connections ...
+    
+    # If x is root, set y to root, else y replace x place
+    if x.p == self.NIL: 
+        self.root = y
+    elif x.p.left == x:
+        x.p.left = y
+    else:
+        x.p.right = y
+    
+    # Reconnect x and y, y is parent
+    y.left = x
+    x.p = y
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Example of Insert},label=lst:insert]
+def insert(self, key):
+    # Create a new node
+    z = node(key)
+    # Find the place to insert z
+    x = self.root
+    y = self.NIL
+    while x != self.NIL:
+        # Save z's parent
+        y = x
+        if z.key < x.key:
+            x = x.left
+        else:
+            x = x.right
+    z.p = y
+    # If there is no node in tree, z be the root
+    if y == self.NIL: 
+        self.root = z
+    elif z.key < y.key:
+        y.left = z
+    else:
+        y.right = z
+    
+    # Setting the z child to NIL
+    z.left = self.NIL
+    z.right = self.NIL
+
+    self.insert_fixup(z)
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Example of Insert Fix up},label=lst:fixup]
+def insert_fixup(self, z):
+    while z.p.color == RED:
+        if z.p == z.p.p.left: 
+            y = z.p.p.right # Check the uncle's color
+            # Case 1, if uncle is RED, 
+            if y.color == RED:
+                z.p.color = BLACK # Let parent and uncle be BLACK
+                y.color = BLACK
+                # Set grandparent to RED to maintain subtree's "Black height"
+                z.p.p.color = RED
+                z = z.p.p
+            else:
+                # Case 2, z is right child
+                # Left rotate z and prepare for Case 3
+                if z == z.p.right:
+                    z = z.p
+                    self.left_rotate(z)
+                # Case 3, z is left child
+                # Maintain the subtree's height and Right rotate z grandparent 
+                z.p.color = BLACK
+                z.p.p.color = RED
+                self.right_rotate(z.p.p)
+        else:
+            y = z.p.p.left
+            if y.color == RED:
+                z.p.color = BLACK
+                y.color = BLACK
+                z.p.p.color = RED
+                z = z.p.p
+            else:
+                if z == z.p.left:
+                    z = z.p
+                    self.right_rotate(z)
+                z.p.color = BLACK
+                z.p.p.color = RED
+                self.left_rotate(z.p.p)
+    self.root.color = BLACK
+\end{lstlisting}
+\begin{lstlisting}[caption={Example of Transplant},label=lst:Transplant]
+def transplant (self, u, v):
+    # Transplant the node u with target node v
+    if u.p == self.NIL:
+        self.root = v
+    elif u == u.p.left:
+        u.p.left = v
+    else:
+        u.p.right = v
+    v.p = u.p
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Example of Delete}, label = lst:Delete]
+def delete(self, z):
+    y = z
+    y_original_color = y.color
+    # If 
+    if z.left == self.NIL:
+        x = z.right
+        self.transplant(z, z.right) # Replace by right child
+    elif z.right == self.NIL:
+        x = z.left
+        self.transplant(z, z.left) # Replace by left child
+    else:
+        y = self.min(z.right) # Find the successor node
+        y_original_color = y.color
+        # x is y's right child, which will replace y's original position.
+        x = y.right
+        if y!=z.right:
+            # If y is deeper in the tree, replace y with x
+            self.transplant(y, y.right)
+            y.right = z.right
+            y.right.p = y
+        else:
+            # If y is z's direct child
+            # Update x's parent pointer (important if x is NIL)
+            x.p = y
+        # Replace z with y in the tree
+        self.transplant(z, y)
+        # Attach z's left subtree to y and inherit z's color
+        y.left = z.left
+        y.left.p = y
+        y.color = z.color
+    
+    if y_original_color == BLACK:
+        self.delete_fix(x)
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Example of Delete Fix up}, label = lst:deleteFixUp]
+    
 \end{lstlisting}
 
 % ==========================================
